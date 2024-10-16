@@ -1,40 +1,33 @@
 {
-    "pluginAlias": "DummyLockHomeKey",
-    "pluginType": "accessory",
-    "schema": {
-        "type": "object",
-        "properties": {
-            "name": {
-                "title": "Name",
-                "type": "string",
-                "required": true,
-                "default": "Lock",
-                "description": "The name that will appear in your homebridge log."
-            },
-            "color": {
-                "title": "Color",
-                "type": "string",
-                "required": false,
-                "default": "AQT///8A",
-                "description": "HardwareFinish/Color."
-            },
-            "serialNumber": {
-                "title": "Serial Number",
-                "type": "string",
-                "required": false,
-                "default": "1234",
-                "description": "Serial Number."
-            },
-            "nfcKeyData": {
-                "tagType": "ISO 14443-3A, NXP - Mifare DESFire EV3 8k",
-                "serialNumber": "04:5D:B2:1A:12:1C:90",
-                "atqa": "0x0344",
-                "sak": "0x20",
-                "historicalBytes": "0x80",
-                "dataFormat": "NFC Forum Type 4"
-            }
-        }
+  "pluginAlias": "VirtualHomekeyLock",
+  "pluginType": "accessory",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "required": true,
+        "default": "Virtual HomeKey Lock"
+      },
+      "serialNumber": {
+        "title": "NFC Tag Serial Number",
+        "type": "string",
+        "required": true,
+        "default": "123456789"
+      },
+      "keyColor": {
+        "title": "HomeKey Color",
+        "type": "string",
+        "required": true,
+        "default": "Silver",
+        "oneOf": [
+          { "title": "Tan", "const": "Tan" },
+          { "title": "Gold", "const": "Gold" },
+          { "title": "Silver", "const": "Silver" },
+          { "title": "Black", "const": "Black" }
+        ]
+      }
     }
+  }
 }
-
-

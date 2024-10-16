@@ -18,7 +18,7 @@
                 "default": "AQT///8A",
                 "description": "HardwareFinish/Color."
             },
-            "serialnumber": {
+            "serialNumber": {
                 "title": "Serial Number",
                 "type": "string",
                 "required": false,

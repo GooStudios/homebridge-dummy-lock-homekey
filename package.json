@@ -1,23 +1,24 @@
 {
-  "name": "homebridge-dummy-lock-homekey-edited",
-  "version": "1.0.8",
-  "description": "Dummy Lock with HomeKey for Homebridge EDITED",
-  "license": "MIT",
+  "name": "homebridge-virtual-homekey-lock",
+  "version": "1.1.0",
+  "description": "Homebridge plugin for a virtual lock with HomeKey NFC tag emulation",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
   "keywords": [
-    "homebridge-plugin"
+    "homebridge-plugin",
+    "homekey",
+    "nfc",
+    "lock"
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/benov84/homebridge-dummy-lock-homekey.git"
-  },
-  "bugs": {
-    "url": "https://github.com/benov84/homebridge-dummy-lock-homekey/issues"
-  },
   "engines": {
-    "node": ">=0.12.0",
-    "homebridge": ">=0.2.0"
+    "node": ">=14.18.1",
+    "homebridge": ">=1.3.5"
   },
+  "author": "GooStudios",
+  "license": "ISC",
   "dependencies": {
-    "node-persist": "^2.1.0"
+    "color-convert": "^2.0.1"
   }
 }

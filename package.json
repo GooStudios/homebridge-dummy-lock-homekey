@@ -1,7 +1,7 @@
 {
-  "name": "homebridge-dummy-lock-homekey",
+  "name": "homebridge-dummy-lock-homekey-edited",
   "version": "1.0.8",
-  "description": "Dummy Lock with HomeKey for Homebridge",
+  "description": "Dummy Lock with HomeKey for Homebridge EDITED",
   "license": "MIT",
   "keywords": [
     "homebridge-plugin"

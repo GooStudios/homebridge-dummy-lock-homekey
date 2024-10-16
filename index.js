@@ -17,6 +17,14 @@ class DummyLockHomeKey {
     this.name = config['name'];
     this.color = config['color'];
     this.serialNumber = config['serialNumber'] || '12345678'; // Set default or use from config
+
+    // New NFC configuration fields
+    this.tagType = config['tagType'] || 'ISO 14443-3A';
+    this.atqa = config['atqa'] || '0x0344';
+    this.sak = config['sak'] || '0x20';
+    this.historicalBytes = config['historicalBytes'] || '0x80';
+    this.dataFormat = config['dataFormat'] || 'NFC Forum Type 4';
+
     this.lockService = new Service.LockMechanism(this.name);
     this.lockState = Characteristic.LockCurrentState.SECURED;
   }
@@ -35,13 +43,12 @@ class DummyLockHomeKey {
       .on('get', this.getLockCharacteristicHandler.bind(this))
       .on('set', this.setLockCharacteristicHandler.bind(this));
 
-    //+++++
     const lockManagementService = new Service.LockManagement("Lock Management");
     const lockMechanismService = new Service.LockMechanism("NFC Lock");
     const nfcAccessService = new Service.NFCAccess("NFC Access");
 
-    // Construct NFC data including the serial number
-    const nfcData = constructNFCData(this.serialNumber);
+    // Construct NFC data including the serial number and other parameters
+    const nfcData = constructNFCData(this.serialNumber, this.tagType, this.atqa, this.sak, this.historicalBytes, this.dataFormat);
     nfcAccessService.setCharacteristic(Characteristic.NFCAccessSupportedConfiguration, nfcData);
 
     const configState = nfcAccessService.getCharacteristic(Characteristic.ConfigurationState);
@@ -113,8 +120,8 @@ class DummyLockHomeKey {
   }
 }
 
-// Function to construct NFC data with serial number
-function constructNFCData(serialNumber) {
-  // Example: Convert serial number to a hex string or other required format
-  return Buffer.from(serialNumber).toString('hex');
+// Function to construct NFC data with serial number and other parameters
+function constructNFCData(serialNumber, tagType, atqa, sak, historicalBytes, dataFormat) {
+  // Example: Construct a string or buffer with all necessary NFC data
+  return Buffer.from(`${serialNumber}-${tagType}-${atqa}-${sak}-${historicalBytes}-${dataFormat}`).toString('hex');
 }

@@ -1,127 +1,83 @@
-let hap, Service, Characteristic, Accessory, PlatformAccessory, UUIDGen;
+const colorConvert = require('color-convert');
 
-module.exports = (homebridge) => {
-  Service = homebridge.hap.Service;
-  Characteristic = homebridge.hap.Characteristic;
+let Service, Characteristic;
 
-  Accessory = homebridge.hap.Accessory;
-  CharacteristicEventTypes = homebridge.hap.CharacteristicEventTypes;
+const PLUGIN_NAME = 'homebridge-virtual-homekey-lock';
+const ACCESSORY_NAME = 'VirtualHomekeyLock';
 
-  homebridge.registerAccessory('homebridge-dummy-lock-homekey', 'DummyLockHomeKey', DummyLockHomeKey);
-}
-
-class DummyLockHomeKey {
-  constructor(log, config) {
-    // get config values
+class VirtualHomekeyLock {
+  constructor(log, config, api) {
     this.log = log;
-    this.name = config['name'];
-    this.color = config['color'];
-    this.serialNumber = config['serialNumber'] || '12345678'; // Set default or use from config
+    this.config = config;
+    this.api = api;
 
-    // New NFC configuration fields
-    this.tagType = config['tagType'] || 'ISO 14443-3A';
-    this.atqa = config['atqa'] || '0x0344';
-    this.sak = config['sak'] || '0x20';
-    this.historicalBytes = config['historicalBytes'] || '0x80';
-    this.dataFormat = config['dataFormat'] || 'NFC Forum Type 4';
+    this.name = config.name;
+    this.serialNumber = config.serialNumber;
+    this.keyColor = config.keyColor;
 
     this.lockService = new Service.LockMechanism(this.name);
-    this.lockState = Characteristic.LockCurrentState.SECURED;
+    this.informationService = new Service.AccessoryInformation();
+
+    this.lockService
+      .getCharacteristic(Characteristic.LockCurrentState)
+      .onGet(this.getLockState.bind(this));
+
+    this.lockService
+      .getCharacteristic(Characteristic.LockTargetState)
+      .onGet(this.getLockState.bind(this))
+      .onSet(this.setLockState.bind(this));
+
+    this.setupHomeKey();
+  }
+
+  getLockState() {
+    // Implementieren Sie hier die Logik zum Abrufen des Schlosszustands
+    return Characteristic.LockCurrentState.SECURED;
+  }
+
+  setLockState(state) {
+    // Implementieren Sie hier die Logik zum Setzen des Schlosszustands
+    this.log.info('Lock state set to:', state);
+    return state;
+  }
+
+  setupHomeKey() {
+    const colorHex = this.getColorHex(this.keyColor);
+    const keyData = Buffer.from(`01${colorHex}`, 'hex');
+    
+    this.lockService.setCharacteristic(
+      Characteristic.NFCAccessControlPoint,
+      keyData
+    );
+    
+    this.lockService.setCharacteristic(
+      Characteristic.NFCAccessSupportedConfiguration,
+      this.serialNumber
+    );
+  }
+
+  getColorHex(color) {
+    const colorMap = {
+      'Tan': '04CED5DA00',
+      'Gold': '04AAD6EC00',
+      'Silver': '04E3E3E300',
+      'Black': '0400000000'
+    };
+    return colorMap[color] || '04E3E3E300'; // Standardmäßig Silber
   }
 
   getServices() {
-    const informationService = new Service.AccessoryInformation()
-      .setCharacteristic(Characteristic.Manufacturer, 'Acme')
-      .setCharacteristic(Characteristic.Model, 'Dummy Lock 1.0')
-      .setCharacteristic(Characteristic.SerialNumber, this.serialNumber)
-      .setCharacteristic(Characteristic.HardwareFinish, this.color);
+    this.informationService
+      .setCharacteristic(Characteristic.Manufacturer, 'Virtual Manufacturer')
+      .setCharacteristic(Characteristic.Model, 'Virtual HomeKey Lock')
+      .setCharacteristic(Characteristic.SerialNumber, this.serialNumber);
 
-    this.lockService.getCharacteristic(Characteristic.LockCurrentState)
-      .on('get', this.getLockCharacteristicHandler.bind(this));
-
-    this.lockService.getCharacteristic(Characteristic.LockTargetState)
-      .on('get', this.getLockCharacteristicHandler.bind(this))
-      .on('set', this.setLockCharacteristicHandler.bind(this));
-
-    const lockManagementService = new Service.LockManagement("Lock Management");
-    const lockMechanismService = new Service.LockMechanism("NFC Lock");
-    const nfcAccessService = new Service.NFCAccess("NFC Access");
-
-    // Construct NFC data including the serial number and other parameters
-    const nfcData = constructNFCData(this.serialNumber, this.tagType, this.atqa, this.sak, this.historicalBytes, this.dataFormat);
-    nfcAccessService.setCharacteristic(Characteristic.NFCAccessSupportedConfiguration, nfcData);
-
-    const configState = nfcAccessService.getCharacteristic(Characteristic.ConfigurationState);
-    const controlPoint = nfcAccessService.getCharacteristic(Characteristic.NFCAccessControlPoint);
-
-    configState.on(CharacteristicEventTypes.GET, callback => {
-      console.log("Queried config state: ");
-      callback(undefined, 0);
-    });
-
-    controlPoint.on(CharacteristicEventTypes.SET, (value, callback) => {
-      console.log("Control Point Write: " + value);
-      callback(undefined, "");
-    });
-
-    let lockState = Characteristic.LockCurrentState.UNSECURED;
-
-    const currentStateCharacteristic = lockMechanismService.getCharacteristic(Characteristic.LockCurrentState);
-    const targetStateCharacteristic = lockMechanismService.getCharacteristic(Characteristic.LockTargetState);
-
-    currentStateCharacteristic.on(CharacteristicEventTypes.GET, callback => {
-      console.log("Queried current lock state: " + lockState);
-      callback(undefined, lockState);
-    });
-
-    targetStateCharacteristic.on(CharacteristicEventTypes.SET, (value, callback) => {
-      console.log("Setting lock state to: " + value);
-      lockState = value;
-      callback();
-      setTimeout(() => {
-        currentStateCharacteristic.updateValue(lockState);
-      }, 1000);
-    });
-
-    return [informationService, lockManagementService, lockMechanismService, nfcAccessService];
-  }
-
-  actionCallback(err, result) {
-    if (err) {
-      this.updateCurrentState(Characteristic.LockCurrentState.JAMMED);
-      return console.error(err);
-    }
-  }
-
-  // Lock Handler
-  setLockCharacteristicHandler(targetState, callback) {
-    if (targetState == Characteristic.LockCurrentState.SECURED) {
-      this.log(`locking ` + this.name, targetState);
-      this.lockState = targetState;
-      this.updateCurrentState(this.lockState);
-      this.log(this.lockState + " " + this.name);
-    } else {
-      this.log(`unlocking ` + this.name, targetState);
-      this.lockState = targetState;
-      this.updateCurrentState(this.lockState);
-      this.log(this.lockState + " " + this.name);
-    }
-    callback();
-  }
-
-  updateCurrentState(toState) {
-    this.lockService
-      .getCharacteristic(Characteristic.LockCurrentState)
-      .updateValue(toState);
-  }
-
-  getLockCharacteristicHandler(callback) {
-    callback(null, this.lockState);
+    return [this.informationService, this.lockService];
   }
 }
 
-// Function to construct NFC data with serial number and other parameters
-function constructNFCData(serialNumber, tagType, atqa, sak, historicalBytes, dataFormat) {
-  // Example: Construct a string or buffer with all necessary NFC data
-  return Buffer.from(`${serialNumber}-${tagType}-${atqa}-${sak}-${historicalBytes}-${dataFormat}`).toString('hex');
-}
+module.exports = (api) => {
+  Service = api.hap.Service;
+  Characteristic = api.hap.Characteristic;
+  api.registerAccessory(PLUGIN_NAME, ACCESSORY_NAME, VirtualHomekeyLock);
+};
